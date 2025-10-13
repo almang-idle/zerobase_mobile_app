@@ -6,7 +6,7 @@ class MyNavigationBar {
   static BottomNavigationBar main({required onTap, required currentIndex}) {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      backgroundColor: AppColors.primaryNormal,
+      backgroundColor: AppColors.primary,
       onTap: onTap,
       items: [],
     );
