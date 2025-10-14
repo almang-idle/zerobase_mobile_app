@@ -3,7 +3,7 @@ import 'package:myapp/app/cores/bases/base_widget.dart';
 import 'package:myapp/app/modules/main/controllers/main_controller.dart';
 
 import '../../../cores/values/app_colors.dart';
-import '../widgets/animated_arrow.dart';
+import '../widgets/animated_arrow_down.dart';
 
 class OnboardingView extends BaseWidget<MainController> {
   OnboardingView({super.key});
@@ -16,7 +16,7 @@ class OnboardingView extends BaseWidget<MainController> {
           left: 0,
           right: 0,
           bottom: 120,
-          child: AnimatedArrowImage(),
+          child: AnimatedArrowDownImage(),
         ),
         Center(
           child: Column(

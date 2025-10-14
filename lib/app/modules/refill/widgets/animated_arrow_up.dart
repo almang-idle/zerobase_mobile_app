@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 
-class AnimatedArrowImage extends StatefulWidget {
-  const AnimatedArrowImage({super.key});
+class AnimatedArrowUpImage extends StatefulWidget {
+  const AnimatedArrowUpImage({super.key});
 
   @override
-  _AnimatedArrowImageState createState() => _AnimatedArrowImageState();
+  _AnimatedArrowUpImageState createState() => _AnimatedArrowUpImageState();
 }
 
-class _AnimatedArrowImageState extends State<AnimatedArrowImage>
+class _AnimatedArrowUpImageState extends State<AnimatedArrowUpImage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
@@ -21,7 +21,7 @@ class _AnimatedArrowImageState extends State<AnimatedArrowImage>
     )..repeat(reverse: true);
     _offsetAnimation = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(0.0, 0.3),
+      end: const Offset(0, -0.3),
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
@@ -38,10 +38,13 @@ class _AnimatedArrowImageState extends State<AnimatedArrowImage>
   Widget build(BuildContext context) {
     return SlideTransition(
       position: _offsetAnimation,
-      child: Image.asset(
-        'assets/images/down_arrow.png',
-        width: 226,
-        height: 215,
+      child: Transform.scale(
+        scaleY: -1,
+        child: Image.asset(
+          'assets/images/down_arrow.png',
+          width: 226,
+          height: 215,
+        ),
       ),
     );
   }

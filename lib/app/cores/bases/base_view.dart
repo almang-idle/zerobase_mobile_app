@@ -11,7 +11,7 @@ abstract class BaseView<Controller extends GetxController>
   Widget body(BuildContext context);
   PreferredSizeWidget? appBar(BuildContext context);
   Widget? bottomNavigationBar(BuildContext context);
-  bool? extendBodyBehindAppBar;
+  final bool? extendBodyBehindAppBar = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -37,6 +37,10 @@ dependencies:
   cupertino_icons: ^1.0.6
   get: ^4.6.6
   smooth_page_indicator: ^1.2.1
+  logger: ^2.6.2
+  dio: ^5.9.0
+  intl: ^0.20.2
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
