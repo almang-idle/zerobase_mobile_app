@@ -95,9 +95,7 @@ class ProductController extends GetxController {
           weightGram: item.weight);
     }
     cartItems.clear();
-    deviceService.resetWeights();
     inactivityService.reset();
-    Get.offAllNamed(Routes.DEFAULT_ROUTE);
   }
 
   void developFeature() {
