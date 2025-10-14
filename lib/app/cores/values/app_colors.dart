@@ -7,4 +7,5 @@ class AppColors {
   static const green = Color(0xFF23D400);
   static const divider = Color(0xFFECECEC);
   static const black = Color(0xFF000000);
+  static const disabled = Color(0xFFB1B1B1);
 }

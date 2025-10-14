@@ -58,54 +58,78 @@ class PriceView extends BaseView<PriceController> {
             ),
           );
         }),
-        Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                controller.selectedProduct.name,
-                style: const TextStyle(fontSize: 30, color: AppColors.primary),
-              ),
-              const SizedBox(height: 75),
-              // 무게 및 g당 가격
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    controller.formatNumber(controller.measuredWeight.round()),
-                    style: const TextStyle(
-                        fontSize: 60, fontWeight: FontWeight.bold),
+        Obx(() {
+          return Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  controller.selectedProduct.name,
+                  style: TextStyle(
+                    fontSize: 30,
+                    color: controller.stableFlag
+                        ? AppColors.primary
+                        : AppColors.disabled,
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 10.0, left: 8),
-                    child: Text('g', style: TextStyle(fontSize: 30)),
-                  ),
-                  const SizedBox(width: 20),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10.0),
-                    child: Text(
-                      'x ${controller.formatNumber(controller.selectedProduct.unitPrice)}원/1g',
-                      style: const TextStyle(fontSize: 20, color: Colors.grey),
+                ),
+                const SizedBox(height: 75),
+                // 무게 및 g당 가격
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Obx(() {
+                      return Text(
+                        controller.formatNumber(controller.productWeight),
+                        style: TextStyle(
+                          fontSize: 60,
+                          fontWeight: FontWeight.bold,
+                          color: controller.stableFlag
+                              ? AppColors.primary
+                              : AppColors.disabled,
+                        ),
+                      );
+                    }),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10.0, left: 8),
+                      child: Text('g', style: TextStyle(fontSize: 30)),
                     ),
+                    const SizedBox(width: 20),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: Text(
+                        'x ${controller.formatNumber(controller.selectedProduct.unitPrice)}원/1g',
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: controller.stableFlag
+                              ? AppColors.primary
+                              : AppColors.disabled,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(
+                  width: 525,
+                  child: Divider(height: 30, thickness: 1),
+                ),
+                // 최종 가격
+                Text(
+                  '${controller.formatNumber(controller.totalPrice)} 원',
+                  style: TextStyle(
+                    fontSize: 60,
+                    fontWeight: FontWeight.bold,
+                    color: controller.stableFlag
+                        ? AppColors.primary
+                        : AppColors.disabled,
                   ),
-                ],
-              ),
-              const SizedBox(
-                width: 525,
-                child: Divider(height: 30, thickness: 1),
-              ),
-              // 최종 가격
-              Text(
-                '${controller.formatNumber(controller.totalPrice)} 원',
-                style:
-                    const TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
+                ),
+              ],
+            ),
+          );
+        }),
       ],
     );
   }
