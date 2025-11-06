@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
@@ -94,8 +95,20 @@ class ProductController extends GetxController {
           productId: item.product.id,
           weightGram: item.weight);
     }
-    cartItems.clear();
-    inactivityService.reset();
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text('전송 완료'),
+      content: const Text('5초 뒤 홈으로 돌아갑니다.'),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('확인'),
+          onPressed: () {},
+        ),
+      ],
+    ));
+    Future.delayed(const Duration(seconds: 5), () {
+      cartItems.clear();
+      inactivityService.reset();
+    });
   }
 
   void developFeature() {

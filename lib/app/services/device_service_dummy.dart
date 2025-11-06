@@ -43,4 +43,9 @@ class DeviceServiceDummy extends DeviceService {
     totalWeight(newWeight);
     _log.i("Total Bottle Weight: $totalWeight");
   }
+
+  @override
+  void connectToDevice(String deviceId) {
+    // TODO: implement connectToDevice
+  }
 }
