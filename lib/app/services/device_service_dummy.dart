@@ -1,8 +1,30 @@
+import 'package:myapp/app/cores/enums/device_type.dart';
+import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
 import 'package:myapp/app/services/device_service.dart';
 
 class DeviceServiceDummy extends DeviceService {
   final _log = TagLogger("DeviceServiceDummy");
+
+  @override
+  void onInit() {
+    super.onInit();
+    _log.i("DeviceServiceDummy initialized.");
+    Future.delayed(const Duration(seconds: 3), () {
+      adapterState(true);
+      scannedDevices(
+        [
+          Device(id: "Device_001", name: "Scale_01", type: DeviceType.SCALE),
+          Device(id: "Device_002", name: "Scale_02", type: DeviceType.SCALE),
+          Device(id: "Device_003", name: "Scale_03", type: DeviceType.SCALE),
+          Device(id: "Device_997", name: "", type: DeviceType.OTHER),
+          Device(id: "Device_998", name: "", type: DeviceType.OTHER),
+          Device(id: "Device_999", name: "", type: DeviceType.OTHER),
+        ],
+      );
+      _log.i("Simulated device connected.");
+    });
+  }
 
   @override
   Stream<double> getWeight() {
@@ -46,6 +68,7 @@ class DeviceServiceDummy extends DeviceService {
 
   @override
   void connectToDevice(String deviceId) {
-    // TODO: implement connectToDevice
+    isConnected(true);
+    _log.i("Simulated connection to device: $deviceId");
   }
 }

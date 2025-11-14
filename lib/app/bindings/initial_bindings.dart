@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:myapp/app/modules/main/controllers/main_controller.dart';
 import 'package:myapp/app/services/backend_service_impl.dart';
+import 'package:myapp/app/services/device_service_dummy.dart';
 import 'package:myapp/app/services/device_service_impl.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
+import 'package:myapp/app/cores/enums/device_type.dart';
 import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
 import 'package:myapp/app/services/device_service.dart';
@@ -12,8 +13,8 @@ class DeviceServiceImpl extends DeviceService {
   final _log = TagLogger("DeviceServiceImpl");
   final _rxScannedResults = RxList<ScanResult>([]);
   final Guid WEIGHT_SERVICE_UUID =
-      Guid("0000181D-0000-1000-8000-00805F9B34FB"); // 예: Weight Scale Service
-  final Guid WEIGHT_CHAR_UUID = Guid("00002A98-0000-1000-8000-00805F9B34FB");
+      Guid("a5fbf7b2-696d-45c9-8f59-4f3592a23b49"); // 예: Weight Scale Service
+  final Guid WEIGHT_CHAR_UUID = Guid("6e170b83-7095-4a4c-b01b-ab15e2355ddd");
 
   @override
   void onInit() {
@@ -94,26 +95,24 @@ class DeviceServiceImpl extends DeviceService {
 
   //TODO: 파싱
   double _parseWeightData(List<int> data) {
-    // 예시 1: 데이터가 "3.14" 같은 문자열인 경우 (사용자의 원래 코드)
-    // (가능성 매우 낮음)
-    // String decodedValue = String.fromCharCodes(data);
-    // return double.tryParse(decodedValue) ?? 0.0;
-
-    // 예시 2: 데이터가 2바이트(Little-Endian) 정수이고 100을 나눠야 kg인 경우
-    // 예: [23, 10] -> (10 * 256 + 23) = 2583 -> 25.83kg
-    if (data.length >= 2) {
-      // ByteData를 사용한 안전한 파싱
-      final byteData = ByteData.sublistView(Uint8List.fromList(data));
-      // 2바이트 부호 없는 정수(Little Endian)
-      int rawValue = byteData.getUint16(0, Endian.little);
-      return rawValue / 100.0;
+    if (data.length != 4) {
+      _log.w("수신된 데이터가 4바이트가 아닙니다. 파싱 실패: $data");
+      return 0.0;
     }
 
-    // 예시 3: 4바이트 Float(Little-Endian)인 경우
-    // if (data.length >= 4) {
-    //   final byteData = ByteData.sublistView(Uint8List.fromList(data));
-    //   return byteData.getFloat32(0, Endian.little);
-    // }
+    // 2. List<int>를 ByteData로 변환
+    try {
+      // Uint8List.fromList(data)는 새 목록을 생성합니다.
+      // .buffer.asByteData()는 해당 버퍼에 대한 뷰를 생성합니다.
+      final byteData = ByteData.sublistView(Uint8List.fromList(data));
+
+      // 3. 4바이트를 32비트 float, Little-Endian 방식으로 파싱
+      return byteData.getFloat32(0, Endian.little);
+
+    } catch (e) {
+      _log.e("ByteData 파싱 중 오류 발생: $e, Data: $data");
+      return 0.0;
+    }
 
     _log.w("데이터 파싱 실패: $data");
     return 0.0; // 파싱 실패 시 기본값
@@ -139,9 +138,16 @@ class DeviceServiceImpl extends DeviceService {
             .where((r) => r.device.remoteId.str == deviceId)
             .first
             .device;
-        device.connect(license: License.free);
-        var connectionSubscription = connectToDeviceStream(deviceId);
-        device.cancelWhenDisconnected(connectionSubscription);
+        device.connect(license: License.free).then((_){
+          isConnected(true);
+          connectedDevice(toDevice(device));
+
+          _log.i("Device $deviceId connected.");
+        }).catchError((e){
+          isConnected(false);
+          connectedDevice(null);
+          _log.i("Device $deviceId disconnected.");
+        });
         return;
       }
     }
@@ -157,7 +163,8 @@ class DeviceServiceImpl extends DeviceService {
         scannedDevices.add(Device(
           id: r.device.remoteId.str,
           name: r.advertisementData.advName,
-          type: r.device.advName,
+          type:
+              r.device.advName == "Scale" ? DeviceType.SCALE : DeviceType.OTHER,
         ));
         _rxScannedResults.add(r);
       }
@@ -165,28 +172,42 @@ class DeviceServiceImpl extends DeviceService {
     });
   }
 
-  StreamSubscription connectToDeviceStream(String deviceId) {
-    ScanResult result =
-        _rxScannedResults.where((r) => r.device.remoteId.str == deviceId).first;
+  // StreamSubscription connectToDeviceStream(String deviceId) {
+  //   ScanResult result =
+  //       _rxScannedResults.where((r) => r.device.remoteId.str == deviceId).first;
+  //
+  //   return result.device.connectionState.listen((state) {
+  //     if (state == BluetoothConnectionState.connected) {
+  //       isConnected(true);
+  //       connectedDevice(toDevice(result));
+  //       _log.i("Device $deviceId connected.");
+  //     } else {
+  //       isConnected(false);
+  //       connectedDevice(null);
+  //       _log.i("Device $deviceId disconnected.");
+  //     }
+  //   });
+  // }
 
-    return result.device.connectionState.listen((state) {
-      if (state == BluetoothConnectionState.connected) {
-        isConnected(true);
-        connectedDevice(toDevice(result));
-        _log.i("Device $deviceId connected.");
-      } else {
-        isConnected(false);
-        connectedDevice(null);
-        _log.i("Device $deviceId disconnected.");
-      }
-    });
-  }
+  // Device toDevice(ScanResult result) {
+  //   return Device(
+  //     id: result.device.remoteId.str,
+  //     name: result.advertisementData.advName,
+  //     type: result.device.advName == "Scale"
+  //         ? DeviceType.SCALE
+  //         : DeviceType.OTHER,
+  //   );
+  // }
 
-  Device toDevice(ScanResult result) {
+  Device toDevice(BluetoothDevice device){
     return Device(
-      id: result.device.remoteId.str,
-      name: result.advertisementData.advName,
-      type: result.device.advName,
+      id: device.remoteId.str,
+      name: device.advName,
+      type: device.advName == "Scale"
+          ? DeviceType.SCALE
+          : DeviceType.OTHER,
     );
   }
+
+
 }

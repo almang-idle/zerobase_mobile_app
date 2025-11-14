@@ -24,21 +24,37 @@ class ScanDevicesDialog extends StatelessWidget {
             itemBuilder: (context, index) {
               final device = devices[index];
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    device.name.isNotEmpty ? device.name : 'Unknown Device',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: device.name.isNotEmpty
-                          ? AppColors.primary
-                          : AppColors.gray,
-                    ),
-                  ),
                   Row(
                     children: [
-                      Text(' (${device.id})'),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 10),
+                          Text(
+                            device.name.isNotEmpty
+                                ? device.name
+                                : 'Unknown Device',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: device.name.isNotEmpty
+                                  ? AppColors.primary
+                                  : AppColors.gray,
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Text('id: ${device.id}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: device.name.isNotEmpty
+                                    ? AppColors.primary
+                                    : AppColors.gray,
+                              )),
+                        ],
+                      ),
                       const Spacer(),
                       ElevatedButton(
                         onPressed: () {
@@ -49,6 +65,9 @@ class ScanDevicesDialog extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const Divider(
+                    height: 1,
+                  )
                 ],
               );
             },
