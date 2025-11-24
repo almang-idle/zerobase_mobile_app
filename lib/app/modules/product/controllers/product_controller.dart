@@ -80,10 +80,17 @@ class ProductController extends GetxController {
   void selectProduct(Product product) {
     Get.toNamed(Routes.PRICE, arguments: {'product': product})?.then((data) {
       if (data == null) return;
-      final product = data['product'] as Product;
-      final weight = data['weight'];
-      final price = data['price'] as int;
-      addItemToCart(product, weight, price);
+
+      final returnedProduct = data['product'] as Product?;
+      final weight = data['weight'] as int?;
+      final price = data['price'] as int?;
+
+      if (returnedProduct == null || weight == null || price == null) {
+        _log.e('ProductController: Invalid data returned from PriceView');
+        return;
+      }
+
+      addItemToCart(returnedProduct, weight, price);
     });
   }
 

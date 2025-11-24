@@ -3,7 +3,7 @@ import 'package:myapp/app/cores/bases/base_widget.dart';
 import 'package:myapp/app/modules/main/controllers/main_controller.dart';
 
 import '../../../cores/values/app_colors.dart';
-import '../widgets/animated_arrow_down.dart';
+import '../../../cores/widgets/animated_arrow_down.dart';
 
 class OnboardingView extends BaseWidget<MainController> {
   OnboardingView({super.key});

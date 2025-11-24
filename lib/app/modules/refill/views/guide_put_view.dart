@@ -4,7 +4,7 @@ import 'package:myapp/app/cores/bases/base_widget.dart';
 import 'package:myapp/app/modules/refill/controllers/refill_controller.dart';
 
 import '../../../cores/values/app_colors.dart';
-import '../../main/widgets/animated_arrow_down.dart';
+import '../../../cores/widgets/animated_arrow_down.dart';
 
 class GuidePutView extends BaseWidget<RefillController> {
   GuidePutView({super.key});

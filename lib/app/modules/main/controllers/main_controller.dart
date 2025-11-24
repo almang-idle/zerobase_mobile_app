@@ -4,6 +4,8 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/values/app_durations.dart';
+import 'package:myapp/app/cores/values/weight_constants.dart';
 import 'package:myapp/app/services/device_service.dart';
 
 import '../../../routes/app_pages.dart';
@@ -18,8 +20,6 @@ class MainController extends GetxController
 
   int get curTabIndex => _rxCurTabIndex.value;
   final Queue<double> _weightBuffer = Queue<double>();
-  final double _weightErrorConst = 1;
-  final double _weightMin = 100;
   final RxBool _rxStableFlag = RxBool(false);
 
   bool get stableFlag => _rxStableFlag.value;
@@ -38,7 +38,7 @@ class MainController extends GetxController
   void animatedToPage(index) {
     pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 500),
+      duration: AppDurations.pageAnimation,
       curve: Curves.easeIn,
     );
     _rxCurTabIndex.value = index;
@@ -49,13 +49,13 @@ class MainController extends GetxController
       _log.d(value.toString());
       _weightBuffer.add(value);
 
-      if (_weightBuffer.length > 20) {
+      if (_weightBuffer.length > WeightConstants.bufferSize) {
         _weightBuffer.removeFirst();
       } else {
         return;
       }
 
-      if (value > _weightMin) {
+      if (value > WeightConstants.minimumWeight) {
         _rxMeasureFlag(true);
         if ((pageController.page ?? 0) <= 0) {
           animatedToPage(1);
@@ -72,16 +72,18 @@ class MainController extends GetxController
       }
 
       double avg = sum / _weightBuffer.length;
-      bool testFlag = true;
+      bool isStable = true;
       for (var e in _weightBuffer) {
-        if (e > avg + _weightErrorConst || e < avg - _weightErrorConst) {
-          testFlag = false;
+        if (e > avg + WeightConstants.stabilityTolerance ||
+            e < avg - WeightConstants.stabilityTolerance) {
+          isStable = false;
+          break;
         }
       }
-      if (testFlag) {
+      if (isStable) {
         _rxStableFlag(true);
         _deviceService.setEmptyBottleWeight(avg.round());
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(AppDurations.weightStabilizationDelay, () {
           if (!isClosed) {
             Get.toNamed(Routes.KEYPAD);
           }

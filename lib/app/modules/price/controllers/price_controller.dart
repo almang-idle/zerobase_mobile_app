@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/values/weight_constants.dart';
 import 'package:myapp/app/services/device_service.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
 
@@ -24,8 +25,6 @@ class PriceController extends GetxController {
 
   late StreamSubscription _sub;
 
-  final double _weightErrorConst = 1;
-  final double _weightMin = 100;
   final RxBool _rxStableFlag = RxBool(false);
 
   bool get stableFlag => _rxStableFlag.value;
@@ -34,8 +33,13 @@ class PriceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // arguments가 Map 형태라고 가정
-    selectedProduct = Get.arguments['product'];
+    final args = Get.arguments;
+    if (args == null || args['product'] == null) {
+      _log.e('PriceController: product argument is missing');
+      Get.back();
+      return;
+    }
+    selectedProduct = args['product'] as Product;
     subscriptionWeight();
   }
 
@@ -72,13 +76,13 @@ class PriceController extends GetxController {
               ? value.round() - (deviceService.emptyBottleWeight.value ?? 0)
               : 0);
 
-      if (_weightBuffer.length > 20) {
+      if (_weightBuffer.length > WeightConstants.bufferSize) {
         _weightBuffer.removeFirst();
       } else {
         return;
       }
 
-      if (value < _weightMin) {
+      if (value < WeightConstants.minimumWeight) {
         _rxStableFlag(false);
         return;
       }
@@ -89,21 +93,25 @@ class PriceController extends GetxController {
       }
 
       double avg = sum / _weightBuffer.length;
-      bool testFlag = true;
+      bool isStable = true;
       for (var e in _weightBuffer) {
-        if (e > avg + _weightErrorConst || e < avg - _weightErrorConst) {
-          testFlag = false;
+        if (e > avg + WeightConstants.stabilityTolerance ||
+            e < avg - WeightConstants.stabilityTolerance) {
+          isStable = false;
+          break;
         }
       }
-      if (testFlag) {
-        _rxStableFlag(true);
-      } else {
-        _rxStableFlag(false);
-      }
+      _rxStableFlag(isStable);
     }, onError: (err) {
       _log.e(err);
     }, onDone: () {
       _log.d("Weight stream is done");
     });
+  }
+
+  @override
+  void onClose() {
+    _sub.cancel();
+    super.onClose();
   }
 }
