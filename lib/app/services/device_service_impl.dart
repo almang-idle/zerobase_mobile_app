@@ -7,14 +7,12 @@ import 'package:get/get.dart';
 import 'package:myapp/app/cores/enums/device_type.dart';
 import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/values/ble_constants.dart';
 import 'package:myapp/app/services/device_service.dart';
 
 class DeviceServiceImpl extends DeviceService {
   final _log = TagLogger("DeviceServiceImpl");
   final _rxScannedResults = RxList<ScanResult>([]);
-  final Guid WEIGHT_SERVICE_UUID =
-      Guid("a5fbf7b2-696d-45c9-8f59-4f3592a23b49"); // 예: Weight Scale Service
-  final Guid WEIGHT_CHAR_UUID = Guid("6e170b83-7095-4a4c-b01b-ab15e2355ddd");
 
   @override
   void onInit() {
@@ -66,9 +64,9 @@ class DeviceServiceImpl extends DeviceService {
     BluetoothCharacteristic? weightChar;
 
     try {
-      var service = services.firstWhere((s) => s.uuid == WEIGHT_SERVICE_UUID);
+      var service = services.firstWhere((s) => s.uuid == BleConstants.WEIGHT_SERVICE_UUID);
       weightChar =
-          service.characteristics.firstWhere((c) => c.uuid == WEIGHT_CHAR_UUID);
+          service.characteristics.firstWhere((c) => c.uuid == BleConstants.WEIGHT_CHAR_UUID);
     } catch (e) {
       _log.e("원하는 무게 특성(UUID)을 찾지 못했습니다. $e");
       yield 0.0;
@@ -93,6 +91,8 @@ class DeviceServiceImpl extends DeviceService {
     }
   }
 
+  double? _lastWeight; // 마지막 무게 값 저장 (비정상 변화 탐지용)
+
   //TODO: 파싱
   double _parseWeightData(List<int> data) {
     if (data.length != 4) {
@@ -107,15 +107,43 @@ class DeviceServiceImpl extends DeviceService {
       final byteData = ByteData.sublistView(Uint8List.fromList(data));
 
       // 3. 4바이트를 32비트 float, Little-Endian 방식으로 파싱
-      return byteData.getFloat32(0, Endian.little);
+      final weight = byteData.getFloat32(0, Endian.little);
+
+      // 4. 값 검증
+      // NaN 또는 Infinity 검사
+      if (weight.isNaN || weight.isInfinite) {
+        _log.e("유효하지 않은 무게 값: NaN 또는 Infinity");
+        return 0.0;
+      }
+
+      // 음수 검사
+      if (weight < BleConstants.MIN_WEIGHT_GRAM) {
+        _log.e("유효하지 않은 무게 값: 음수 ($weight g)");
+        return 0.0;
+      }
+
+      // 합리적인 범위 검증
+      if (weight > BleConstants.MAX_WEIGHT_GRAM) {
+        _log.e("무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
+        return 0.0;
+      }
+
+      // 비정상적인 무게 변화 탐지
+      if (_lastWeight != null && _lastWeight! > 0) {
+        final change = (weight - _lastWeight!).abs();
+        if (change > BleConstants.SUSPICIOUS_WEIGHT_CHANGE_THRESHOLD) {
+          _log.w("의심스러운 무게 변화 감지: ${change.toStringAsFixed(1)} g (이전: ${_lastWeight!.toStringAsFixed(1)} g, 현재: ${weight.toStringAsFixed(1)} g)");
+          // 경고만 로그하고 값은 허용 (실제 사용자가 큰 물체를 올릴 수 있음)
+        }
+      }
+
+      _lastWeight = weight;
+      return weight;
 
     } catch (e) {
       _log.e("ByteData 파싱 중 오류 발생: $e, Data: $data");
       return 0.0;
     }
-
-    _log.w("데이터 파싱 실패: $data");
-    return 0.0; // 파싱 실패 시 기본값
   }
 
   @override
@@ -138,12 +166,12 @@ class DeviceServiceImpl extends DeviceService {
             .where((r) => r.device.remoteId.str == deviceId)
             .first
             .device;
-        device.connect(license: License.free).then((_){
+        device.connect(license: License.free).then((_) {
           isConnected(true);
           connectedDevice(toDevice(device));
 
           _log.i("Device $deviceId connected.");
-        }).catchError((e){
+        }).catchError((e) {
           isConnected(false);
           connectedDevice(null);
           _log.i("Device $deviceId disconnected.");
@@ -157,57 +185,40 @@ class DeviceServiceImpl extends DeviceService {
 
   StreamSubscription scanForDevices() {
     return FlutterBluePlus.onScanResults.listen((results) {
+      List<Device> newScannedDevices = [];
       scannedDevices.clear();
       _rxScannedResults.clear();
       for (var r in results) {
-        scannedDevices.add(Device(
+        newScannedDevices.add(Device(
           id: r.device.remoteId.str,
           name: r.advertisementData.advName,
-          type:
-              r.device.advName == "Scale" ? DeviceType.SCALE : DeviceType.OTHER,
+          type: r.device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX)
+              ? DeviceType.SCALE
+              : DeviceType.OTHER,
         ));
         _rxScannedResults.add(r);
       }
+      newScannedDevices.sort((a, b) {
+        if (a.type == DeviceType.SCALE && b.type != DeviceType.SCALE) {
+          return -1;
+        } else if (a.type != DeviceType.SCALE && b.type == DeviceType.SCALE) {
+          return 1;
+        } else {
+          return a.name.compareTo(b.name);
+        }
+      });
+      scannedDevices(newScannedDevices);
       _log.i("Scanned Devices: ${scannedDevices.length}");
     });
   }
 
-  // StreamSubscription connectToDeviceStream(String deviceId) {
-  //   ScanResult result =
-  //       _rxScannedResults.where((r) => r.device.remoteId.str == deviceId).first;
-  //
-  //   return result.device.connectionState.listen((state) {
-  //     if (state == BluetoothConnectionState.connected) {
-  //       isConnected(true);
-  //       connectedDevice(toDevice(result));
-  //       _log.i("Device $deviceId connected.");
-  //     } else {
-  //       isConnected(false);
-  //       connectedDevice(null);
-  //       _log.i("Device $deviceId disconnected.");
-  //     }
-  //   });
-  // }
-
-  // Device toDevice(ScanResult result) {
-  //   return Device(
-  //     id: result.device.remoteId.str,
-  //     name: result.advertisementData.advName,
-  //     type: result.device.advName == "Scale"
-  //         ? DeviceType.SCALE
-  //         : DeviceType.OTHER,
-  //   );
-  // }
-
-  Device toDevice(BluetoothDevice device){
+  Device toDevice(BluetoothDevice device) {
     return Device(
       id: device.remoteId.str,
       name: device.advName,
-      type: device.advName == "Scale"
+      type: device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX)
           ? DeviceType.SCALE
           : DeviceType.OTHER,
     );
   }
-
-
 }

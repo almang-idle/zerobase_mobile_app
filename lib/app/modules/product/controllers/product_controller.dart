@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
+import 'package:myapp/app/cores/models/tag_logger.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
 
 import '../../../routes/app_pages.dart';
@@ -10,6 +12,8 @@ import '../models/cart_item.dart';
 import '../responses/product_response.dart';
 
 class ProductController extends GetxController {
+  final _log = TagLogger("ProductController");
+
   // 1. 서비스 인스턴스를 가져오는 게터
   BackendService get backendService => Get.find<BackendService>();
 
@@ -39,7 +43,11 @@ class ProductController extends GetxController {
       handleResponse(response);
     }).catchError((error) {
       // 에러 처리
-      print('상품 조회 에러: $error');
+      if (kDebugMode) {
+        _log.e('상품 조회 에러: $error');
+      } else {
+        _log.e('상품 조회 실패');
+      }
     }).whenComplete(() {
       // 성공/실패 여부와 관계없이 항상 실행
       isLoading(false);
@@ -88,27 +96,61 @@ class ProductController extends GetxController {
     return cartItems.fold(0, (sum, item) => sum + item.price);
   }
 
-  void completePurchase() {
-    for (var item in cartItems) {
-      backendService.sendScaleData(
-          phoneSuffix: inactivityService.id,
-          productId: item.product.id,
-          weightGram: item.weight);
+  Future<void> completePurchase() async {
+    try {
+      // 모든 API 요청을 병렬로 실행하고 완료를 기다림
+      List<Future<Response>> requests = [];
+      for (var item in cartItems) {
+        requests.add(
+          backendService.sendScaleData(
+            phoneSuffix: inactivityService.id,
+            productId: item.product.id,
+            weightGram: item.weight,
+          ),
+        );
+      }
+
+      // 모든 요청이 성공할 때까지 대기
+      await Future.wait(requests);
+
+      // 모든 요청 성공 시에만 성공 다이얼로그 표시
+      Get.dialog(CupertinoAlertDialog(
+        title: const Text('전송 완료'),
+        content: const Text('5초 뒤 홈으로 돌아갑니다.'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('확인'),
+            onPressed: () {},
+          ),
+        ],
+      ));
+
+      Future.delayed(const Duration(seconds: 5), () {
+        cartItems.clear();
+        inactivityService.reset();
+      });
+    } catch (error) {
+      // 에러 발생 시 사용자에게 알림
+      Get.dialog(CupertinoAlertDialog(
+        title: const Text('전송 실패'),
+        content: const Text('네트워크 오류가 발생했습니다.\n다시 시도해주세요.'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('확인'),
+            onPressed: () {
+              Get.back();
+            },
+          ),
+        ],
+      ));
+
+      // 에러 로깅
+      if (kDebugMode) {
+        _log.e('구매 완료 실패: $error');
+      } else {
+        _log.e('구매 처리 중 오류 발생');
+      }
     }
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text('전송 완료'),
-      content: const Text('5초 뒤 홈으로 돌아갑니다.'),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('확인'),
-          onPressed: () {},
-        ),
-      ],
-    ));
-    Future.delayed(const Duration(seconds: 5), () {
-      cartItems.clear();
-      inactivityService.reset();
-    });
   }
 
   void developFeature() {

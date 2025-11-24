@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'backend_service.dart';
 
 // BackendService의 실제 구현부
@@ -9,8 +10,13 @@ class BackendServiceImpl extends BackendService {
   ));
 
   BackendServiceImpl() {
-    // API 요청/응답을 로그로 확인하기 위해 LogInterceptor 추가
-    _dio.interceptors.add(LogInterceptor(responseBody: true));
+    // 디버그 모드에서만 API 요청/응답을 로그로 확인
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        responseBody: true,
+        requestBody: true,
+      ));
+    }
   }
 
   /// 1. 등록된 제품 정보 조회
