@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart'
-    show CupertinoAlertDialog, CupertinoDialogAction;
+    show CupertinoAlertDialog, CupertinoDialogAction, CupertinoButton, CupertinoColors;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/values/app_colors.dart';
@@ -12,76 +12,130 @@ class ScanDevicesDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoAlertDialog(
-      title: const Text('Scanning for Devices'),
-      content: Obx(() {
-        final devices = deviceService.scannedDevices;
-        return SizedBox(
-          height: Get.height * 0.6,
-          width: Get.width * 0.6,
-          child: ListView.builder(
-            itemCount: devices.length,
-            itemBuilder: (context, index) {
-              final device = devices[index];
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 10),
-                          Text(
-                            device.name.isNotEmpty
-                                ? device.name
-                                : 'Unknown Device',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: device.name.isNotEmpty
-                                  ? AppColors.primary
-                                  : AppColors.gray,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Text('id: ${device.id}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: device.name.isNotEmpty
-                                    ? AppColors.primary
-                                    : AppColors.gray,
-                              )),
-                        ],
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        onPressed: () {
-                          deviceService.connectToDevice(device.id);
-                          Get.back();
-                        },
-                        child: const Text('Connect'),
-                      ),
-                    ],
-                  ),
-                  const Divider(
-                    height: 1,
-                  )
-                ],
-              );
-            },
-          ),
-        );
-      }),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+    return Dialog(
+      backgroundColor: Colors.transparent, // 배경을 투명하게 하고 Container로 스타일링
+      insetPadding: EdgeInsets.zero, // 기본 패딩 제거 (필요시 조절)
+      child: Container(
+        width: Get.width * 0.25, // 📌 요청하신 가로 사이즈 (화면의 30%)
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6, // iOS 다이얼로그 배경색
+          borderRadius: BorderRadius.circular(14), // iOS 스타일 둥근 모서리
         ),
-      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // 내용물만큼만 세로 차지 (최대 높이는 아래 SizedBox로 제한됨)
+          children: [
+            // --- 1. Title Area ---
+            const Padding(
+              padding: EdgeInsets.only(top: 16.0, bottom: 16.0),
+              child: Text(
+                'Scanning for Devices',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color: Colors.black, // iOS 타이틀 기본색
+                ),
+              ),
+            ),
+
+            // --- 2. Content Area ---
+            Obx(() {
+              final devices = deviceService.scannedDevices;
+              return SizedBox(
+                height: Get.height * 0.6, // 요청하신 세로 높이
+                child: devices.isEmpty
+                    ? const Center(child: Text("No devices found"))
+                    : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: devices.length,
+                  itemBuilder: (context, index) {
+                    final device = devices[index];
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      device.name.isNotEmpty
+                                          ? device.name
+                                          : 'Unknown Device',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: device.name.isNotEmpty
+                                            ? AppColors.primary
+                                            : AppColors.gray,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'id: ${device.id}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: device.name.isNotEmpty
+                                            ? AppColors.primary
+                                            : AppColors.gray,
+                                      ),
+                                      overflow: TextOverflow.ellipsis, // ID가 길 경우 처리
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton(
+                                onPressed: () {
+                                  deviceService
+                                      .connectToDevice(device.id);
+                                  Get.back();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    minimumSize: Size(60, 36)
+                                ),
+                                child: const Text('Connect', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1, color: Colors.grey),
+                      ],
+                    );
+                  },
+                ),
+              );
+            }),
+
+            const Divider(height: 1, color: Colors.grey),
+
+            // --- 3. Action Area (Cancel) ---
+            // CupertinoDialogAction 모양 흉내내기
+            SizedBox(
+              width: double.infinity,
+              height: 45, // iOS 액션 버튼 표준 높이와 비슷하게
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: CupertinoColors.activeBlue
+                  ),
+                ),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
