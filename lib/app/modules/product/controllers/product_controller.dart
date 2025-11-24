@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/values/app_durations.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
 
 import '../../../routes/app_pages.dart';
@@ -132,7 +133,7 @@ class ProductController extends GetxController {
         ],
       ));
 
-      Future.delayed(const Duration(seconds: 5), () {
+      Future.delayed(AppDurations.purchaseCompleteMessage, () {
         cartItems.clear();
         inactivityService.reset();
       });

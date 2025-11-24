@@ -1,5 +1,6 @@
 import 'package:flutter/animation.dart';
 import 'package:get/get.dart';
+import 'package:myapp/app/cores/values/app_durations.dart';
 import 'package:myapp/app/modules/keypad/bindings/keypad_bindings.dart';
 import 'package:myapp/app/modules/keypad/views/keypad_view.dart';
 import 'package:myapp/app/modules/price/bindings/price_bindings.dart';
@@ -24,7 +25,7 @@ class AppPages {
       name: Routes.LOGO,
       page: () => LogoView(),
       binding: LogoBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     ),
@@ -32,7 +33,7 @@ class AppPages {
       name: Routes.MAIN,
       page: () => MainView(),
       binding: MainBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     ),
@@ -40,7 +41,7 @@ class AppPages {
       name: Routes.KEYPAD,
       page: () => KeypadView(),
       binding: KeypadBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     ),
@@ -48,7 +49,7 @@ class AppPages {
       name: Routes.REFILL,
       page: () => RefillView(),
       binding: RefillBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     ),
@@ -56,7 +57,7 @@ class AppPages {
       name: Routes.PRODUCT,
       page: () => ProductView(),
       binding: ProductBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     ),
@@ -64,7 +65,7 @@ class AppPages {
       name: Routes.PRICE,
       page: () => PriceView(),
       binding: PriceBindings(),
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: AppDurations.routeTransition,
       transition: Transition.cupertino,
       curve: Curves.easeIn,
     )

@@ -4,6 +4,8 @@ import 'dart:collection';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/values/app_durations.dart';
+import 'package:myapp/app/cores/values/weight_constants.dart';
 import 'package:myapp/app/services/inactivity_service.dart';
 
 import '../../../routes/app_pages.dart';
@@ -22,8 +24,6 @@ class RefillController extends GetxController
   DeviceService get _deviceService => Get.find<DeviceService>();
 
   final Queue<double> _weightBuffer = Queue<double>();
-  final double _weightErrorConst = 1;
-  final double _weightMin = 100;
   final RxBool _rxStableFlag = RxBool(false);
 
   bool get stableFlag => _rxStableFlag.value;
@@ -38,7 +38,7 @@ class RefillController extends GetxController
   void onInit() {
     super.onInit();
     pageController = PageController(viewportFraction: 1, keepPage: true);
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(AppDurations.refillInstructionDelay, () {
       animatedToPage(1);
       subscriptionWeight();
     });
@@ -47,7 +47,7 @@ class RefillController extends GetxController
   void animatedToPage(index) {
     pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 500),
+      duration: AppDurations.pageAnimation,
       curve: Curves.easeIn,
     );
     _rxCurTabIndex.value = index;
@@ -58,11 +58,11 @@ class RefillController extends GetxController
       _log.d(value);
       _weightBuffer.add(value);
 
-      if (value <= _weightMin) {
+      if (value <= WeightConstants.minimumWeight) {
         return;
       }
 
-      if (_weightBuffer.length > 20) {
+      if (_weightBuffer.length > WeightConstants.bufferSize) {
         _weightBuffer.removeFirst();
       } else {
         return;
@@ -74,13 +74,15 @@ class RefillController extends GetxController
       }
 
       double avg = sum / _weightBuffer.length;
-      bool testFlag = true;
+      bool isStable = true;
       for (var e in _weightBuffer) {
-        if (e > avg + _weightErrorConst || e < avg - _weightErrorConst) {
-          testFlag = false;
+        if (e > avg + WeightConstants.stabilityTolerance ||
+            e < avg - WeightConstants.stabilityTolerance) {
+          isStable = false;
+          break;
         }
       }
-      if (testFlag) {
+      if (isStable) {
         _rxStableFlag(true);
         _sub.cancel();
         _deviceService.setTotalWeight(avg.round());

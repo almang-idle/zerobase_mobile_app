@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:myapp/app/cores/values/app_durations.dart';
 
 class AnimatedArrowDownImage extends StatefulWidget {
   const AnimatedArrowDownImage({super.key});
@@ -16,7 +17,7 @@ class _AnimatedArrowDownImageState extends State<AnimatedArrowDownImage>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 1),
+      duration: AppDurations.arrowAnimation,
       vsync: this,
     )..repeat(reverse: true);
     _offsetAnimation = Tween<Offset>(
