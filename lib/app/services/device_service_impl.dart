@@ -93,7 +93,6 @@ class DeviceServiceImpl extends DeviceService {
 
   double? _lastWeight; // 마지막 무게 값 저장 (비정상 변화 탐지용)
 
-  //TODO: 파싱
   double _parseWeightData(List<int> data) {
     if (data.length != 4) {
       _log.w("수신된 데이터가 4바이트가 아닙니다. 파싱 실패: $data");
@@ -126,15 +125,6 @@ class DeviceServiceImpl extends DeviceService {
       if (weight > BleConstants.MAX_WEIGHT_GRAM) {
         _log.e("무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
         return 0.0;
-      }
-
-      // 비정상적인 무게 변화 탐지
-      if (_lastWeight != null && _lastWeight! > 0) {
-        final change = (weight - _lastWeight!).abs();
-        if (change > BleConstants.SUSPICIOUS_WEIGHT_CHANGE_THRESHOLD) {
-          _log.w("의심스러운 무게 변화 감지: ${change.toStringAsFixed(1)} g (이전: ${_lastWeight!.toStringAsFixed(1)} g, 현재: ${weight.toStringAsFixed(1)} g)");
-          // 경고만 로그하고 값은 허용 (실제 사용자가 큰 물체를 올릴 수 있음)
-        }
       }
 
       _lastWeight = weight;
