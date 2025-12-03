@@ -7,11 +7,13 @@ import 'package:get/get.dart';
 import 'package:myapp/app/cores/enums/device_type.dart';
 import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
+import 'package:myapp/app/cores/models/toast_logger.dart';
 import 'package:myapp/app/cores/values/ble_constants.dart';
 import 'package:myapp/app/services/device_service.dart';
 
 class DeviceServiceImpl extends DeviceService {
   final _log = TagLogger("DeviceServiceImpl");
+  final _toast = ToastLogger("DeviceServiceImpl");
   final _rxScannedResults = RxList<ScanResult>([]);
 
   @override
@@ -95,7 +97,7 @@ class DeviceServiceImpl extends DeviceService {
 
   double _parseWeightData(List<int> data) {
     if (data.length != 4) {
-      _log.w("수신된 데이터가 4바이트가 아닙니다. 파싱 실패: $data");
+      _toast.w("수신된 데이터가 4바이트가 아닙니다. 파싱 실패: $data");
       return 0.0;
     }
 
@@ -111,19 +113,19 @@ class DeviceServiceImpl extends DeviceService {
       // 4. 값 검증
       // NaN 또는 Infinity 검사
       if (weight.isNaN || weight.isInfinite) {
-        _log.e("유효하지 않은 무게 값: NaN 또는 Infinity");
+        _toast.e("유효하지 않은 무게 값: NaN 또는 Infinity");
         return 0.0;
       }
 
       // 음수 검사
       if (weight < BleConstants.MIN_WEIGHT_GRAM) {
-        _log.e("유효하지 않은 무게 값: 음수 ($weight g)");
+        _toast.e("유효하지 않은 무게 값: 음수 ($weight g)");
         return 0.0;
       }
 
       // 합리적인 범위 검증
       if (weight > BleConstants.MAX_WEIGHT_GRAM) {
-        _log.e("무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
+        _toast.e("무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
         return 0.0;
       }
 
@@ -131,7 +133,7 @@ class DeviceServiceImpl extends DeviceService {
       return weight;
 
     } catch (e) {
-      _log.e("ByteData 파싱 중 오류 발생: $e, Data: $data");
+      _toast.e("ByteData 파싱 중 오류 발생: $e, Data: $data");
       return 0.0;
     }
   }

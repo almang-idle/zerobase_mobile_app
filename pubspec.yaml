@@ -43,6 +43,7 @@ dependencies:
   shimmer: ^3.0.0
   flutter_blue_plus: ^2.0.0
   app_settings: ^5.1.1
+  fluttertoast: ^9.0.0
 
 dev_dependencies:
   flutter_test:
