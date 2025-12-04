@@ -10,7 +10,7 @@ class WeightConstants {
   /// 최소 측정 무게 (그램)
   ///
   /// 이 값 이하의 무게는 측정하지 않습니다.
-  static const double minimumWeight = 100.0;
+  static const double minimumWeight = 0.0;
 
   /// 무게 버퍼 크기
   ///
