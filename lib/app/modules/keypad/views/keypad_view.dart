@@ -24,7 +24,7 @@ class KeypadView extends BaseView<KeypadController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const SizedBox(height: 80),
+            const SizedBox(height: 10),
             SizedBox(
               width: _boxWidth,
               child: const Text(

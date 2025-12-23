@@ -1,8 +1,6 @@
-import 'dart:async';
-
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
-import 'package:myapp/app/cores/values/app_durations.dart';
 import 'package:myapp/app/modules/logo/views/bluetooth_settings_dialog.dart';
 import 'package:myapp/app/modules/logo/views/scan_devices_dialog.dart';
 import 'package:myapp/app/routes/app_pages.dart';
@@ -10,37 +8,33 @@ import 'package:myapp/app/services/device_service.dart';
 
 class LogoController extends GetxController {
   DeviceService get deviceService => Get.find<DeviceService>();
-  Timer? _checkConnectionTimer;
   final _log = TagLogger("LogoController");
 
   @override
   void onInit() {
     super.onInit();
-    _checkConnectionTimer = Timer.periodic(AppDurations.connectionCheckInterval, (timer) {
-      if (!deviceService.adapterState.value) {
-        if(!(Get.isDialogOpen ?? false)){
-          Get.dialog(
-            const BluetoothSettingsDialog(),
-            barrierDismissible: false,
-          );
-        }
-        _log.e("Bluetooth is off. Showing Bluetooth settings dialog.");
-        return;
-      }
-      if (!deviceService.isConnected.value) {
-        if(!(Get.isDialogOpen ?? false)){
-          Get.dialog(const ScanDevicesDialog());
-        }
-        _log.e("No device connected. Redirecting to device connection page.");
-      } else {
-        Get.offNamed(Routes.MAIN);
-      }
+    // 위젯이 모두 빌드된 후에 체크
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkConnection();
     });
   }
 
-  @override
-  void onClose() {
-    super.onClose();
-    _checkConnectionTimer?.cancel();
+  void _checkConnection() {
+    if (deviceService.adapterState.value == false) {
+      Get.dialog(
+        const BluetoothSettingsDialog(),
+        barrierDismissible: false,
+      );
+      _log.e("Bluetooth is off. Showing Bluetooth settings dialog.");
+      return;
+    }
+    if (deviceService.connectedDevice.value == null) {
+      if(!(Get.isDialogOpen ?? false)){
+        Get.dialog(const ScanDevicesDialog(), barrierDismissible: false);
+      }
+      _log.e("No device connected. Showing scan devices dialog.");
+    } else {
+      Get.offNamed(Routes.MAIN);
+    }
   }
 }

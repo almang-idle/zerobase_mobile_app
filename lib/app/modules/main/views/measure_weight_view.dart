@@ -13,7 +13,7 @@ class MeasureWeightView extends BaseWidget<MainController> {
       child: Obx(
         () {
           return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300), // 화면 전환 속도
+            duration: const Duration(milliseconds: 500), // 화면 전환 속도
             transitionBuilder: (Widget child, Animation<double> animation) {
               return FadeTransition(opacity: animation, child: child);
             },

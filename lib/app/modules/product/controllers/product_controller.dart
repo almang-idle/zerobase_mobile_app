@@ -39,7 +39,7 @@ class ProductController extends GetxController {
   // 4. 데이터 로딩 함수 (.then 사용)
   void fetchProducts() {
     isLoading(true);
-    backendService.getProducts().then((response) {
+    backendService.getProducts(type: 'refill').then((response) {
       // 성공 시 응답 처리 함수 호출
       handleResponse(response);
     }).catchError((error) {

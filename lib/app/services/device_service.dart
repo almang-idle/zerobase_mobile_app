@@ -17,13 +17,15 @@ abstract class DeviceService extends GetxService{
     totalWeight(null);
   }
 
-  final Rx<bool> adapterState = Rx<bool>(false);
+  final Rx<bool?> adapterState = Rx(null);
 
-  final Rx<bool> isConnected = Rx<bool>(false);
+  final Rx<bool> isScanning = Rx<bool>(false);
 
-  void connectToDevice(String deviceId);
+  Future connectToDevice(String deviceId);
 
   final Rx<Device?> connectedDevice = Rx<Device?>(null);
 
   final RxList<Device> scannedDevices = RxList<Device>([]);
+
+  void startScanWithDuration({Duration duration = const Duration(seconds: 5)});
 }

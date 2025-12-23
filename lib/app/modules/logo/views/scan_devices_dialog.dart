@@ -1,14 +1,34 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart'
     show CupertinoAlertDialog, CupertinoDialogAction, CupertinoButton, CupertinoColors;
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/values/app_colors.dart';
 import 'package:myapp/app/services/device_service.dart';
 
-class ScanDevicesDialog extends StatelessWidget {
+import '../../../routes/app_pages.dart';
+
+class ScanDevicesDialog extends StatefulWidget {
   const ScanDevicesDialog({super.key});
 
+  @override
+  State<ScanDevicesDialog> createState() => _ScanDevicesDialogState();
+}
+
+class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
   DeviceService get deviceService => Get.find<DeviceService>();
+
+  // 각 디바이스의 연결 중 상태를 추적
+  static final RxMap<String, bool> _connectingDevices = <String, bool>{}.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    // Dialog가 열릴 때 자동으로 5초 스캔 시작
+    deviceService.startScanWithDuration();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,18 +108,32 @@ class ScanDevicesDialog extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: () {
-                                  deviceService
-                                      .connectToDevice(device.id);
-                                  Get.back();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
-                                    minimumSize: Size(60, 36)
-                                ),
-                                child: const Text('Connect', style: TextStyle(fontSize: 12)),
-                              ),
+                              Obx(() {
+                                final isConnecting = _connectingDevices[device.id] ?? false;
+                                return ElevatedButton(
+                                  onPressed: isConnecting
+                                      ? null
+                                      : () async {
+                                          _connectingDevices[device.id] = true;
+                                          try {
+                                            deviceService.connectToDevice(device.id).then((_) {
+                                              Get.offAllNamed(Routes.MAIN);
+                                            });
+                                          } catch (e) {
+                                            // 연결 실패 시 버튼 재활성화
+                                            _connectingDevices[device.id] = false;
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(horizontal: 12),
+                                      minimumSize: Size(60, 36)
+                                  ),
+                                  child: Text(
+                                    isConnecting ? 'Connecting...' : 'Connect',
+                                    style: TextStyle(fontSize: 12)
+                                  ),
+                                );
+                              }),
                             ],
                           ),
                         ),
@@ -113,25 +147,31 @@ class ScanDevicesDialog extends StatelessWidget {
 
             const Divider(height: 1, color: Colors.grey),
 
-            // --- 3. Action Area (Cancel) ---
+            // --- 3. Action Area (Scan) ---
             // CupertinoDialogAction 모양 흉내내기
             SizedBox(
               width: double.infinity,
               height: 45, // iOS 액션 버튼 표준 높이와 비슷하게
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: CupertinoColors.activeBlue
+              child: Obx(() {
+                final isScanning = deviceService.isScanning.value;
+                return CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: isScanning ? null : () {
+                    // 5초 스캔 시작
+                    deviceService.startScanWithDuration();
+                  },
+                  child: Text(
+                    isScanning ? 'Scanning...' : 'Scan',
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: isScanning
+                            ? CupertinoColors.inactiveGray
+                            : CupertinoColors.activeBlue
+                    ),
                   ),
-                ),
-                onPressed: () {
-                  Get.back();
-                },
-              ),
+                );
+              }),
             ),
           ],
         ),

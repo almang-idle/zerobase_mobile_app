@@ -3,10 +3,10 @@
 /// 타이머, 애니메이션, 지연 시간 등에 사용되는 Duration 값들을 정의합니다.
 class AppDurations {
   /// BLE 연결 상태 체크 주기
-  static const connectionCheckInterval = Duration(seconds: 5);
+  static const connectionCheckInterval = Duration(seconds: 12);
 
   /// 무게 안정화 후 화면 전환 대기 시간
-  static const weightStabilizationDelay = Duration(seconds: 2);
+  static const weightStabilizationDelay = Duration(milliseconds: 500);
 
   /// 리필 안내 화면 자동 전환 시간
   static const refillInstructionDelay = Duration(seconds: 5);

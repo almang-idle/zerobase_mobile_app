@@ -66,9 +66,15 @@ class DeviceServiceDummy extends DeviceService {
     _log.i("Total Bottle Weight: $totalWeight");
   }
 
+
   @override
-  void connectToDevice(String deviceId) {
-    isConnected(true);
-    _log.i("Simulated connection to device: $deviceId");
+  void startScanWithDuration({Duration duration = const Duration(seconds: 5)}) {
+    // TODO: implement startScanWithDuration
+  }
+
+  @override
+  Future connectToDevice(String deviceId) {
+    // TODO: implement connectToDevice
+    throw UnimplementedError();
   }
 }

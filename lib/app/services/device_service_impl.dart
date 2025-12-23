@@ -17,20 +17,19 @@ class DeviceServiceImpl extends DeviceService {
   @override
   void onInit() {
     super.onInit();
-    if (FlutterBluePlus.isSupported == false) {
-      _log.e("Bluetooth not supported by this device");
-      return;
-    }
+    FlutterBluePlus.isSupported.then((isSupported) {
+      if (!isSupported) {
+        _log.e("Bluetooth LE is not supported on this device.");
+        adapterState(false);
+        return;
+      }
+    });
     FlutterBluePlus.adapterState.listen((state) {
       if (state == BluetoothAdapterState.on) {
         adapterState(true);
-        FlutterBluePlus.startScan();
-        var scanSubscription = scanForDevices();
-        FlutterBluePlus.cancelWhenScanComplete(scanSubscription);
+        startScanWithDuration();
       } else {
         adapterState(false);
-        FlutterBluePlus.stopScan();
-
         if (!kIsWeb && Platform.isAndroid) {
           FlutterBluePlus.turnOn();
         }
@@ -64,9 +63,10 @@ class DeviceServiceImpl extends DeviceService {
     BluetoothCharacteristic? weightChar;
 
     try {
-      var service = services.firstWhere((s) => s.uuid == BleConstants.WEIGHT_SERVICE_UUID);
-      weightChar =
-          service.characteristics.firstWhere((c) => c.uuid == BleConstants.WEIGHT_CHAR_UUID);
+      var service = services
+          .firstWhere((s) => s.uuid == BleConstants.WEIGHT_SERVICE_UUID);
+      weightChar = service.characteristics
+          .firstWhere((c) => c.uuid == BleConstants.WEIGHT_CHAR_UUID);
     } catch (e) {
       _log.e("원하는 무게 특성(UUID)을 찾지 못했습니다. $e");
       yield 0.0;
@@ -80,9 +80,9 @@ class DeviceServiceImpl extends DeviceService {
       await for (List<int> data in weightChar.lastValueStream) {
         if (data.isEmpty) continue; // 데이터가 비어있으면 무시
 
-        _log.i("Raw data received: $data");
 
         double weight = _parseWeightData(data);
+        _log.i("data : $weight -- $data");
         yield weight;
       }
     } catch (e) {
@@ -123,13 +123,13 @@ class DeviceServiceImpl extends DeviceService {
 
       // 합리적인 범위 검증
       if (weight > BleConstants.MAX_WEIGHT_GRAM) {
-        _log.e("무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
+        _log.e(
+            "무게가 최대값을 초과함: $weight g (최대: ${BleConstants.MAX_WEIGHT_GRAM}g)");
         return 0.0;
       }
 
       _lastWeight = weight;
       return weight;
-
     } catch (e) {
       _log.e("ByteData 파싱 중 오류 발생: $e, Data: $data");
       return 0.0;
@@ -149,66 +149,70 @@ class DeviceServiceImpl extends DeviceService {
   }
 
   @override
-  void connectToDevice(String deviceId) {
-    for (var device in scannedDevices) {
-      if (device.id == deviceId) {
-        BluetoothDevice device = _rxScannedResults
-            .where((r) => r.device.remoteId.str == deviceId)
-            .first
-            .device;
-        device.connect(license: License.free).then((_) {
-          isConnected(true);
-          connectedDevice(toDevice(device));
+  Future connectToDevice(String deviceId) {
+    ScanResult? result = findScanResultById(deviceId);
 
-          _log.i("Device $deviceId connected.");
-        }).catchError((e) {
-          isConnected(false);
-          connectedDevice(null);
-          _log.i("Device $deviceId disconnected.");
-        });
-        return;
-      }
+    if (result == null) {
+      _log.e("connectToDevice: 장치를 찾을 수 없습니다. ID: $deviceId");
+      return Future.error("장치를 찾을 수 없습니다.");
     }
-    isConnected(false);
-    _log.w("Device with ID $deviceId not found among scanned devices.");
+
+    return result.device.connect(license: License.free).then((_) {
+      connectedDevice(scanResultToDevice(result));
+      _log.i("Connected to device: ${connectedDevice.value!.name} (${connectedDevice.value!.id})");
+    });
   }
 
   StreamSubscription scanForDevices() {
     return FlutterBluePlus.onScanResults.listen((results) {
-      List<Device> newScannedDevices = [];
       scannedDevices.clear();
       _rxScannedResults.clear();
       for (var r in results) {
-        newScannedDevices.add(Device(
-          id: r.device.remoteId.str,
-          name: r.advertisementData.advName,
-          type: r.device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX)
-              ? DeviceType.SCALE
-              : DeviceType.OTHER,
-        ));
+        if (r.device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX) ==
+            false) {
+          continue;
+        }
         _rxScannedResults.add(r);
       }
-      newScannedDevices.sort((a, b) {
-        if (a.type == DeviceType.SCALE && b.type != DeviceType.SCALE) {
-          return -1;
-        } else if (a.type != DeviceType.SCALE && b.type == DeviceType.SCALE) {
-          return 1;
-        } else {
-          return a.name.compareTo(b.name);
-        }
-      });
-      scannedDevices(newScannedDevices);
+      scannedDevices(
+        _rxScannedResults.map((r) => scanResultToDevice(r)).toList(),
+      );
       _log.i("Scanned Devices: ${scannedDevices.length}");
     });
   }
 
-  Device toDevice(BluetoothDevice device) {
+  Device scanResultToDevice(dynamic result) {
     return Device(
-      id: device.remoteId.str,
-      name: device.advName,
-      type: device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX)
+      id: result.device.remoteId.str,
+      name: result.advertisementData.advName,
+      type: result.device.advName.contains(BleConstants.SCALE_DEVICE_PREFIX)
           ? DeviceType.SCALE
           : DeviceType.OTHER,
     );
+  }
+
+  @override
+  void startScanWithDuration({Duration duration = const Duration(seconds: 5)}) {
+    _log.i("Starting scan for ${duration.inSeconds} seconds");
+    isScanning(true);
+    FlutterBluePlus.startScan();
+    StreamSubscription scanSub = scanForDevices();
+
+    Future.delayed(duration).then((_) {
+      scanSub.cancel();
+      FlutterBluePlus.stopScan();
+      isScanning(false);
+      _log.i("Scan stopped after ${duration.inSeconds} seconds");
+    });
+  }
+
+  ScanResult? findScanResultById(String deviceId) {
+    try {
+      var result = _rxScannedResults
+          .firstWhere((r) => r.device.remoteId.str == deviceId);
+      return result;
+    } catch (e) {
+      return null;
+    }
   }
 }

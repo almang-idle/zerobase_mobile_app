@@ -10,12 +10,12 @@ class WeightConstants {
   /// 최소 측정 무게 (그램)
   ///
   /// 이 값 이하의 무게는 측정하지 않습니다.
-  static const double minimumWeight = 100.0;
+  static const double minimumWeight = 0.0;
 
   /// 무게 버퍼 크기
   ///
   /// 무게 안정화 판단을 위해 저장하는 최근 측정값의 개수입니다.
-  static const int bufferSize = 20;
+  static const int bufferSize = 8;
 
   // private 생성자 - 인스턴스화 방지
   WeightConstants._();
