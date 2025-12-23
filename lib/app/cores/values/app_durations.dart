@@ -6,7 +6,7 @@ class AppDurations {
   static const connectionCheckInterval = Duration(seconds: 12);
 
   /// 무게 안정화 후 화면 전환 대기 시간
-  static const weightStabilizationDelay = Duration(milliseconds: 500);
+  static const weightStabilizationDelay = Duration(milliseconds: 1000);
 
   /// 리필 안내 화면 자동 전환 시간
   static const refillInstructionDelay = Duration(seconds: 5);

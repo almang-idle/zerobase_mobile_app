@@ -49,12 +49,6 @@ class MainController extends GetxController
       _log.d(value.toString());
       _weightBuffer.add(value);
 
-      if (_weightBuffer.length > WeightConstants.bufferSize) {
-        _weightBuffer.removeFirst();
-      } else {
-        return;
-      }
-
       if (value > WeightConstants.minimumWeight) {
         _rxMeasureFlag(true);
         if ((pageController.page ?? 0) <= 0) {
@@ -63,6 +57,12 @@ class MainController extends GetxController
       } else {
         _rxMeasureFlag(false);
         animatedToPage(0);
+        return;
+      }
+
+      if (_weightBuffer.length > WeightConstants.bufferSize) {
+        _weightBuffer.removeFirst();
+      } else {
         return;
       }
 
