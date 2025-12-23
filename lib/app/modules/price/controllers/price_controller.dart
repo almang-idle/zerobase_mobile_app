@@ -125,7 +125,7 @@ class PriceController extends GetxController {
         }
       }
       if (isStable) {
-        if ((deviceService.totalWeight.value ?? 0) - avg.round().abs() >=
+        if (((deviceService.totalWeight.value ?? 0) - avg.round()).abs() >=
             WeightConstants.minimumWeight) {
           deviceService.setTotalWeight(avg.round());
         }

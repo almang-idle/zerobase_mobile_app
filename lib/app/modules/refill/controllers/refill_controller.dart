@@ -40,7 +40,9 @@ class RefillController extends GetxController
     pageController = PageController(viewportFraction: 1, keepPage: true);
     Future.delayed(AppDurations.refillInstructionDelay, () {
       animatedToPage(1);
-      subscriptionWeight();
+      Future.delayed(AppDurations.pageAnimation, (){
+        subscriptionWeight();
+      });
     });
   }
 

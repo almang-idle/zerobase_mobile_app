@@ -14,9 +14,13 @@ class LogoController extends GetxController {
   void onInit() {
     super.onInit();
     // 위젯이 모두 빌드된 후에 체크
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkConnection();
+      Future.delayed(const Duration(seconds: 2), (){
+        _checkConnection();
+      });
     });
+
   }
 
   void _checkConnection() {

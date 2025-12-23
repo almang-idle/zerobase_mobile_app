@@ -47,7 +47,7 @@ class MeasureWeightView extends BaseWidget<RefillController> {
           ),
           SizedBox(height: 35),
           Text(
-            "빈 병의 무게를 측정 중입니다",
+            "제품이 담긴 병의 무게를 측정 중입니다",
             style: TextStyle(fontSize: 30, color: AppColors.primary),
           ),
           SizedBox(height: 35),
