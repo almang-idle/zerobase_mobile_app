@@ -11,7 +11,7 @@
 ## 🌱 솔루션 한 줄 요약
 
 저울에 올리기만 하면 무게, 가격, 정보가 자동으로 처리되는 제로웨이스트 샵 전용 스마트 리필 시스템
-
+https://github.com/user-attachments/assets/ed87a3ea-8346-4bac-95a8-fca7b1b090b6
 ---
 
 ## 🧐 풀고자 하는 사회 문제
