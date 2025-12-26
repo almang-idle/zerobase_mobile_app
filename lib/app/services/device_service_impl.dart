@@ -2,17 +2,29 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
 import 'package:myapp/app/cores/enums/device_type.dart';
 import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
 import 'package:myapp/app/cores/values/ble_constants.dart';
+import 'package:myapp/app/routes/app_pages.dart';
 import 'package:myapp/app/services/device_service.dart';
 
 class DeviceServiceImpl extends DeviceService {
   final _log = TagLogger("DeviceServiceImpl");
   final _rxScannedResults = RxList<ScanResult>([]);
+  StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
+
+  final Rx<bool?> _adapterState = Rx<bool?>(null);
+  final Rx<Device?> _connectedDevice = Rx<Device?>(null);
+
+  @override
+  bool? getAdapterState() => _adapterState.value;
+
+  @override
+  Device? getConnectedDevice() => _connectedDevice.value;
 
   @override
   void onInit() {
@@ -20,21 +32,21 @@ class DeviceServiceImpl extends DeviceService {
     FlutterBluePlus.isSupported.then((isSupported) {
       if (!isSupported) {
         _log.e("Bluetooth LE is not supported on this device.");
-        adapterState(false);
+        _adapterState.value = false;
         return;
       }
     });
     FlutterBluePlus.adapterState.listen((state) {
       if (state == BluetoothAdapterState.on) {
-        adapterState(true);
+        _adapterState.value = true;
         startScanWithDuration();
       } else {
-        adapterState(false);
+        _adapterState.value = false;
         if (!kIsWeb && Platform.isAndroid) {
           FlutterBluePlus.turnOn();
         }
       }
-      _log.i("Bluetooth Adapter State: $adapterState");
+      _log.i("Bluetooth Adapter State: ${_adapterState.value}");
     });
   }
 
@@ -43,7 +55,7 @@ class DeviceServiceImpl extends DeviceService {
     BluetoothDevice? device;
     try {
       device = FlutterBluePlus.connectedDevices
-          .firstWhere((d) => d.remoteId.str == connectedDevice.value!.id);
+          .firstWhere((d) => d.remoteId.str == _connectedDevice.value!.id);
     } catch (e) {
       _log.e("getWeight: 연결된 장치를 찾을 수 없습니다. $e");
       yield 0.0; // 스트림에 에러 값을 보내고
@@ -79,7 +91,6 @@ class DeviceServiceImpl extends DeviceService {
 
       await for (List<int> data in weightChar.lastValueStream) {
         if (data.isEmpty) continue; // 데이터가 비어있으면 무시
-
 
         double weight = _parseWeightData(data);
         _log.i("data : $weight -- $data");
@@ -163,7 +174,8 @@ class DeviceServiceImpl extends DeviceService {
       // 1. 이미 연결된 장치가 있다면 먼저 연결 해제
       final connectedDevices = FlutterBluePlus.connectedDevices;
       for (var connectedDev in connectedDevices) {
-        _log.i("Disconnecting previously connected device: ${connectedDev.remoteId}");
+        _log.i(
+            "Disconnecting previously connected device: ${connectedDev.remoteId}");
         await connectedDev.disconnect();
       }
 
@@ -178,18 +190,70 @@ class DeviceServiceImpl extends DeviceService {
       );
 
       // 4. 연결 성공
-      connectedDevice(scanResultToDevice(result));
-      _log.i("Successfully connected to device: ${connectedDevice.value!.name} (${connectedDevice.value!.id})");
+      _connectedDevice.value = scanResultToDevice(result);
+      _log.i(
+          "Successfully connected to device: ${_connectedDevice.value!.name} (${_connectedDevice.value!.id})");
 
+      // 5. 연결 상태 모니터링 시작
+      _startMonitoringConnectionState(device);
     } catch (e) {
       // 연결 실패
-      connectedDevice(null);
+      _connectedDevice.value = null;
       _log.e("Failed to connect to device $deviceId: $e");
       rethrow;
     }
   }
 
-  StreamSubscription scanForDevices() {
+  /// 디바이스 연결 상태를 모니터링하고 연결이 끊어지면 다이얼로그를 표시
+  void _startMonitoringConnectionState(BluetoothDevice device) {
+    // 기존 구독이 있다면 취소
+    _connectionStateSubscription?.cancel();
+
+    _connectionStateSubscription = device.connectionState.listen((state) {
+      _log.i("Connection state changed: $state");
+
+      if (state == BluetoothConnectionState.disconnected) {
+        _log.w("Device disconnected. Showing dialog...");
+
+        // 연결된 디바이스 정보 초기화
+        _connectedDevice.value = null;
+
+        // 연결 끊김 다이얼로그 표시
+        _showDisconnectionDialog();
+      }
+    });
+  }
+
+  /// 연결 끊김 다이얼로그를 표시하고 확인 버튼을 누르면 첫 페이지로 이동
+  void _showDisconnectionDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('디바이스 연결 끊김'),
+        content: const Text('디바이스와의 연결이 끊어졌습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // 다이얼로그 닫기
+              Get.back();
+              // 첫 페이지로 라우팅 (모든 이전 페이지 제거)
+              Get.offAllNamed(Routes.LOGO);
+            },
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+      barrierDismissible: false, // 바깥 영역 터치로 닫히지 않도록 설정
+    );
+  }
+
+  @override
+  void onClose() {
+    // 연결 상태 구독 취소
+    _connectionStateSubscription?.cancel();
+    super.onClose();
+  }
+
+  StreamSubscription _scanForDevices() {
     return FlutterBluePlus.onScanResults.listen((results) {
       scannedDevices.clear();
       _rxScannedResults.clear();
@@ -222,7 +286,7 @@ class DeviceServiceImpl extends DeviceService {
     _log.i("Starting scan for ${duration.inSeconds} seconds");
     isScanning(true);
     FlutterBluePlus.startScan();
-    StreamSubscription scanSub = scanForDevices();
+    StreamSubscription scanSub = _scanForDevices();
 
     Future.delayed(duration).then((_) {
       scanSub.cancel();

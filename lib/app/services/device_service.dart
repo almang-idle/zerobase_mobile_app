@@ -17,13 +17,13 @@ abstract class DeviceService extends GetxService{
     totalWeight(null);
   }
 
-  final Rx<bool?> adapterState = Rx(null);
+  bool? getAdapterState();
 
   final Rx<bool> isScanning = Rx<bool>(false);
 
   Future connectToDevice(String deviceId);
 
-  final Rx<Device?> connectedDevice = Rx<Device?>(null);
+  Device? getConnectedDevice();
 
   final RxList<Device> scannedDevices = RxList<Device>([]);
 

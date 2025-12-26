@@ -16,15 +16,18 @@ class LogoController extends GetxController {
     // 위젯이 모두 빌드된 후에 체크
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), (){
+      Future.delayed(const Duration(seconds: 2), () {
         _checkConnection();
       });
     });
-
   }
 
   void _checkConnection() {
-    if (deviceService.adapterState.value == false) {
+    _log.i("_checkConnection called");
+    _log.i("AdapterState: ${deviceService.getAdapterState()}");
+    _log.i("ConnectedDevice: ${deviceService.getConnectedDevice()}");
+
+    if (deviceService.getAdapterState() == false) {
       Get.dialog(
         const BluetoothSettingsDialog(),
         barrierDismissible: false,
@@ -32,12 +35,14 @@ class LogoController extends GetxController {
       _log.e("Bluetooth is off. Showing Bluetooth settings dialog.");
       return;
     }
-    if (deviceService.connectedDevice.value == null) {
-      if(!(Get.isDialogOpen ?? false)){
+    if (deviceService.getConnectedDevice() == null) {
+      if (!(Get.isDialogOpen ?? false)) {
         Get.dialog(const ScanDevicesDialog(), barrierDismissible: false);
       }
       _log.e("No device connected. Showing scan devices dialog.");
     } else {
+      _log.e("Device is connected: ${deviceService.getConnectedDevice()!.id}");
+      _log.e("Navigating to MAIN page");
       Get.offNamed(Routes.MAIN);
     }
   }

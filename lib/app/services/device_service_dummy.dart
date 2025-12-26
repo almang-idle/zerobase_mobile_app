@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:myapp/app/cores/enums/device_type.dart';
 import 'package:myapp/app/cores/models/device.dart';
 import 'package:myapp/app/cores/models/tag_logger.dart';
@@ -6,12 +7,21 @@ import 'package:myapp/app/services/device_service.dart';
 class DeviceServiceDummy extends DeviceService {
   final _log = TagLogger("DeviceServiceDummy");
 
+  final Rx<bool?> _adapterState = Rx<bool?>(null);
+  final Rx<Device?> _connectedDevice = Rx<Device?>(null);
+
+  @override
+  bool? getAdapterState() => _adapterState.value;
+
+  @override
+  Device? getConnectedDevice() => _connectedDevice.value;
+
   @override
   void onInit() {
     super.onInit();
     _log.i("DeviceServiceDummy initialized.");
     Future.delayed(const Duration(seconds: 3), () {
-      adapterState(true);
+      _adapterState.value = true;
       scannedDevices(
         [
           Device(id: "Device_001", name: "Scale_01", type: DeviceType.SCALE),

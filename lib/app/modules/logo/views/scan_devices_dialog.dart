@@ -1,7 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart'
-    show CupertinoAlertDialog, CupertinoDialogAction, CupertinoButton, CupertinoColors;
+    show
+        CupertinoAlertDialog,
+        CupertinoDialogAction,
+        CupertinoButton,
+        CupertinoColors;
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
@@ -21,11 +25,13 @@ class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
   DeviceService get deviceService => Get.find<DeviceService>();
 
   // 각 디바이스의 연결 중 상태를 추적
-  static final RxMap<String, bool> _connectingDevices = <String, bool>{}.obs;
+  final RxMap<String, bool> _connectingDevices = <String, bool>{}.obs;
 
   @override
   void initState() {
     super.initState();
+    // Dialog가 열릴 때마다 연결 상태 초기화
+    _connectingDevices.clear();
     // Dialog가 열릴 때 자동으로 5초 스캔 시작
     deviceService.startScanWithDuration();
   }
@@ -42,7 +48,8 @@ class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
           borderRadius: BorderRadius.circular(14), // iOS 스타일 둥근 모서리
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // 내용물만큼만 세로 차지 (최대 높이는 아래 SizedBox로 제한됨)
+          mainAxisSize: MainAxisSize.min,
+          // 내용물만큼만 세로 차지 (최대 높이는 아래 SizedBox로 제한됨)
           children: [
             // --- 1. Title Area ---
             const Padding(
@@ -65,80 +72,88 @@ class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
                 child: devices.isEmpty
                     ? const Center(child: Text("No devices found"))
                     : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    final device = devices[index];
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
-                          child: Row(
+                        shrinkWrap: true,
+                        itemCount: devices.length,
+                        itemBuilder: (context, index) {
+                          final device = devices[index];
+                          return Column(
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      device.name.isNotEmpty
-                                          ? device.name
-                                          : 'Unknown Device',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: device.name.isNotEmpty
-                                            ? AppColors.primary
-                                            : AppColors.gray,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            device.name.isNotEmpty
+                                                ? device.name
+                                                : 'Unknown Device',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: device.name.isNotEmpty
+                                                  ? AppColors.primary
+                                                  : AppColors.gray,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'id: ${device.id}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: device.name.isNotEmpty
+                                                  ? AppColors.primary
+                                                  : AppColors.gray,
+                                            ),
+                                            overflow: TextOverflow
+                                                .ellipsis, // ID가 길 경우 처리
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'id: ${device.id}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: device.name.isNotEmpty
-                                            ? AppColors.primary
-                                            : AppColors.gray,
-                                      ),
-                                      overflow: TextOverflow.ellipsis, // ID가 길 경우 처리
-                                    ),
+                                    const SizedBox(width: 10),
+                                    Obx(() {
+                                      final isConnecting =
+                                          _connectingDevices[device.id] ??
+                                              false;
+                                      return ElevatedButton(
+                                        onPressed: isConnecting
+                                            ? null
+                                            : () async {
+                                                _connectingDevices[device.id] =
+                                                    true;
+                                                deviceService
+                                                    .connectToDevice(device.id)
+                                                    .then((_) {
+                                                  Get.offAllNamed(Routes.MAIN);
+                                                }).catchError((e) {
+                                                  _connectingDevices[
+                                                      device.id] = false;
+                                                });
+                                              },
+                                        style: ElevatedButton.styleFrom(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                            minimumSize: Size(60, 36)),
+                                        child: Text(
+                                            isConnecting
+                                                ? 'Connecting...'
+                                                : 'Connect',
+                                            style: TextStyle(fontSize: 12)),
+                                      );
+                                    }),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Obx(() {
-                                final isConnecting = _connectingDevices[device.id] ?? false;
-                                return ElevatedButton(
-                                  onPressed: isConnecting
-                                      ? null
-                                      : () async {
-                                          _connectingDevices[device.id] = true;
-                                          deviceService.connectToDevice(device.id).then((_) {
-                                            Get.offAllNamed(Routes.MAIN);
-                                          }).catchError((e){
-                                            _connectingDevices[device.id] = false;
-                                          });
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(horizontal: 12),
-                                      minimumSize: Size(60, 36)
-                                  ),
-                                  child: Text(
-                                    isConnecting ? 'Connecting...' : 'Connect',
-                                    style: TextStyle(fontSize: 12)
-                                  ),
-                                );
-                              }),
+                              const Divider(height: 1, color: Colors.grey),
                             ],
-                          ),
-                        ),
-                        const Divider(height: 1, color: Colors.grey),
-                      ],
-                    );
-                  },
-                ),
+                          );
+                        },
+                      ),
               );
             }),
 
@@ -153,10 +168,12 @@ class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
                 final isScanning = deviceService.isScanning.value;
                 return CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: isScanning ? null : () {
-                    // 5초 스캔 시작
-                    deviceService.startScanWithDuration();
-                  },
+                  onPressed: isScanning
+                      ? null
+                      : () {
+                          // 5초 스캔 시작
+                          deviceService.startScanWithDuration();
+                        },
                   child: Text(
                     isScanning ? 'Scanning...' : 'Scan',
                     style: TextStyle(
@@ -164,8 +181,7 @@ class _ScanDevicesDialogState extends State<ScanDevicesDialog> {
                         fontWeight: FontWeight.bold,
                         color: isScanning
                             ? CupertinoColors.inactiveGray
-                            : CupertinoColors.activeBlue
-                    ),
+                            : CupertinoColors.activeBlue),
                   ),
                 );
               }),
